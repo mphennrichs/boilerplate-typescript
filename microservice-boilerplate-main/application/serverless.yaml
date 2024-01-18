@@ -1,0 +1,197 @@
+service: microservice-boilerplate
+
+frameworkVersion: "3"
+
+package:
+  individually: true
+
+plugins:
+  - serverless-${env:BUILDER, "esbuild"}
+  - serverless-offline
+  - serverless-plugin-lambda-insights
+  - serverless-prune-plugin
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: stage
+  region: ${env:AWS_REGION}
+  architecture: ${env:ARCH, 'x86_64'} # is set 'x86_64' as default, if you use a apple silicon (m1) set your ARCH env as 'arm64'
+  lambdaHashingVersion: 20201221
+  timeout: 29
+  tracing:
+    apiGateway: true
+    lambda: true
+  environment:
+    SLS_DEBUG: "*"
+    STAGE: ${env:STAGE}
+    NODE_NO_WARNINGS: 1
+    SERVICE_NAME: "boilerplate-service"
+    NODE_OPTIONS: "--no-deprecation"
+    SENTRY_DSN_URL: ${env:SENTRY_DSN_URL}
+    SENTRY_TRACES_SAMPLE_RATE: ${env:SENTRY_TRACES_SAMPLE_RATE}
+    CONTEXT_ENV: ${env:CONTEXT_ENV}
+    ELASTICSEARCH_ANALYTICS_ENDPOINT: ${ssm:${env:CONTEXT_ENV}-es-analytics-endpoint}
+    ELASTICSEARCH_ANALYTICS_SECURITY_TOKEN: ${ssm:${env:CONTEXT_ENV}-es-analytics-security-token}
+  apiName: ${env:STAGE}-service-name
+  endpointType: "PRIVATE"
+  vpcEndpointIds:
+    - ${ssm:pagaleve-vpc-endpoint-id}
+  vpc:
+    securityGroupIds:
+      - ${ssm:pagaleve-vpc-public-security-group-id}
+    subnetIds:
+      - ${ssm:pagaleve-vpc-private-a-subnet-id}
+      - ${ssm:pagaleve-vpc-private-b-subnet-id}
+  apiGateway:
+    resourcePolicy:
+      - Effect: Allow
+        Principal: "*"
+        Action: execute-api:Invoke
+        Resource:
+          - execute-api:/*/*/*
+  # iamRoleStatements:
+  #   - Effect: Allow
+  #     Action:
+  #       - sns:*
+  #       - kms:*
+  #     Resource: '*'
+  #   - Effect: Allow
+  #     Action:
+  #       - dynamodb:Query
+  #       - dynamodb:Scan
+  #       - dynamodb:GetItem
+  #       - dynamodb:PutItem
+  #       - dynamodb:UpdateItem
+  #       - dynamodb:DeleteItem
+  #       - dynamodb:DescribeTable
+  #       - dynamodb:GetRecords
+  #       - dynamodb:GetShardIterator
+  #       - dynamodb:ListStreams
+  #     Resource:
+  #       - { 'Fn::GetAtt': ['MerchantAccountTable', 'Arn'] }
+  #   - Effect: Allow
+  #     Action:
+  #       - es:ESHttpPost
+  #       - es:ESHttpPut
+  #       - es:ESHttpDelete
+  #     Resource: "*" #TODO update to only the resources need
+  iamManagedPolicies:
+    - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+
+configValidationMode: error
+
+custom:
+  prune:
+    automatic: true
+    includeLayers: true
+    number: 3
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: false
+    keepNames: true
+    plugins: ./esbuild-plugins.js
+    exclude: []
+    watch:
+      pattern: ["src/**/*.ts"]
+    # Descomentar para rodar no Mac M1
+    # packagerOptions:
+    #   scripts:
+    #     - rm -rf node_modules/sharp
+    #     - npm install --arch=arm64 --platform=linux sharp
+    external:
+      - "@aws-sdk/client-apigatewaymanagementapi"
+      - "@aws-sdk/client-cloudfront"
+      - "@aws-sdk/client-dynamodb"
+      - "@aws-sdk/client-evidently"
+      - "@aws-sdk/client-kms"
+      - "@aws-sdk/client-s3"
+      - "@aws-sdk/client-secrets-manager"
+      - "@aws-sdk/client-ses"
+      - "@aws-sdk/client-sesv2"
+      - "@aws-sdk/client-sfn"
+      - "@aws-sdk/client-sns"
+      - "@aws-sdk/client-sqs"
+      - "@aws-sdk/credential-provider-node"
+      - "@aws-sdk/credential-providers"
+      - "@aws-sdk/lib-dynamodb"
+      - "@aws-sdk/s3-presigned-post"
+      - "@nestjs/microservices"
+      - "@nestjs/websockets"
+      - "sharp"
+      - "cache-manager"
+      - "fastify-swagger"
+      - "class-transformer/storage"
+  provisionedConcurrency:
+    prod: 2
+    sandbox: 1
+    stage: 1
+  serverless-offline:
+    httpPort: 3000
+    host: 0.0.0.0
+    network: webnet
+    allowCache: false
+  serverlessIfElse:
+    - If: '"${env:BUILDER, "esbuild"}" == "webpack"'
+      Exclude:
+        - esbuild
+      Set:
+        webpack.webpackConfig: "./webpack.config.js"
+        webpack.includeModules: true
+
+functions:
+  # dynamodbToElasticSearch:
+  #   handler: 'src/handlers/dynamo-to-elastic-search/dynamodb-to-elasticsearch.default'
+  #   events:
+  #     - stream:
+  #         type: dynamodb
+  #         arn:
+  #           Fn::GetAtt: [TableName, StreamArn]
+  main:
+    handler: src/handlers/api-handler.handler
+    provisionedConcurrency: ${self:custom.provisionedConcurrency.${env:STAGE}, null}
+    events:
+      - http:
+          cors: true
+          method: ANY
+          path: "{proxy+}"
+
+resources:
+  # if using a dynamodb table
+  # - Resources:
+  #     TableName:
+  #       Type: AWS::DynamoDB::Table
+  #       Properties:
+  #         TableName: ${self:custom.dynamodb.customer}
+  # PointInTimeRecoverySpecification:
+  #   PointInTimeRecoveryEnabled: true
+  #         AttributeDefinitions:
+  #           - AttributeName: PK
+  #             AttributeType: S
+  #           - AttributeName: SK
+  #             AttributeType: S
+  #         KeySchema:
+  #           - AttributeName: PK
+  #             KeyType: HASH
+  #           - AttributeName: SK
+  #             KeyType: RANGE
+  #         BillingMode: PAY_PER_REQUEST
+  #         GlobalSecondaryIndexes:
+  #           - IndexName: SK_PK
+  #             KeySchema:
+  #               - AttributeName: SK
+  #                 KeyType: HASH
+  #               - AttributeName: PK
+  #                 KeyType: RANGE
+  #             Projection:
+  #               ProjectionType: ALL
+  # ServiceUrlParam:
+  #   Type: 'AWS::SSM::Parameter'
+  #   Properties:
+  #     Name: ${env:STAGE}-nuvemshop-provider-service-api-id
+  #     Type: String
+  #     Value:
+  #       Ref: ApiGatewayRestApi

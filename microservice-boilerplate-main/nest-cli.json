@@ -1,0 +1,15 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "application/src",
+  "projects": {
+    "@pagaleve/boilerplate-service-shared": {
+      "type": "library",
+      "root": "shared",
+      "entryFile": "index",
+      "sourceRoot": "shared/src",
+      "compilerOptions": {
+        "tsConfigPath": "shared/tsconfig.lib.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    // To provide backwards compatibility, Node.js allows you to import CommonJS packages with a default import. This flag tells TypeScript that it's okay to use import on CommonJS modules.
+    "allowSyntheticDefaultImports": true,
+    // Node.js 18 support loading modules instead of the old CommonJS format, we do have to tell TypeScript that we are using Node.js's rules for resolving modules. But we need it for Jest.
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    // This tells TypeScript that it's okay to output JavaScript syntax with features from ES2022. In practice, this means that it will e.g. output logical assignment operators & async/await syntax instead of embedding a polyfill.
+    "target": "ES2022",
+    // This tells TypeScript that it's okay to use functions and properties introduced in ES2022 or earlier. In practice, this means that you can use e.g. Promise.any and
+    "lib": ["ES2022"],
+    // To solve an issue with properties and inheritance on new version of TS
+    "useDefineForClassFields": false,
+    // To solve issue with file-type library that requires module resolution node16 or nodenext
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "paths": {
+      "@/*": [
+        "application/src/*"
+      ], /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
+      "@/test/*": [
+        "application/test/*"
+      ],
+      "@shared/*": [
+        "shared/src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "transform": "typescript-transform-paths"
+      },
+      {
+        "transform": "typescript-transform-paths",
+        "afterDeclarations": true
+      },
+      {
+        "transform": "ts-auto-mock/transformer",
+        "cacheBetweenTests": false
+      }
+    ]
+  }
+}

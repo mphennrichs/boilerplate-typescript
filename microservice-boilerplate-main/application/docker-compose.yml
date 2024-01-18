@@ -1,0 +1,24 @@
+version: '3.7'
+
+services:
+  localstack:
+    container_name: localstack
+    build: .
+    command: npx sls offline start
+    network_mode: host
+    environment:
+      TSC_COMPILER: ttsc
+      VIRTUAL_HOST: account.airfox.localtest.me
+    ports:
+      - 3000:3000
+      - 4010:4010
+    env_file:
+      - local.env
+    init: true
+    volumes:
+      - '.:/usr/src/app'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+
+networks:
+  webnet:
+    external: true

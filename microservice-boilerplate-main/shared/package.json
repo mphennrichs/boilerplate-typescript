@@ -1,0 +1,44 @@
+{
+  "name": "@pagaleve/boilerplate-service-shared",
+  "version": "0.0.0",
+  "description": "",
+  "author": "",
+  "license": "UNLICENSED",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist/src/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pagaleve/boilerplate-service.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "scripts": {
+    "build": "(rimraf dist || true) && ts-patch install && nest build -p tsconfig.json",
+    "buildPrePublish": "(rimraf dist || true) && ts-patch install && tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "prebuild": "rimraf dist",
+    "prepublishOnly": "npm run buildPrePublish",
+    "prestart": "rimraf dist"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "9.*.*",
+    "@nestjs/swagger": "5.*.*",
+    "brazilian-class-validator": "0.*.*",
+    "class-transformer": "0.*.*",
+    "class-validator": "0.*.*",
+    "file-type": "16.*.*"
+  },
+  "devDependencies": {
+    "@nestjs/common": "9.0.11",
+    "brazilian-class-validator": "0.1.6",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.13.2",
+    "file-type": "16.5.3",
+    "http-status": "^1.2.0"
+  }
+}
